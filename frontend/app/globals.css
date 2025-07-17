@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  /* Default dark mode colors */
+  @apply text-white dark:text-white;
+  /* Light mode colors */
+  @apply light:bg-peach-50 light:text-gray-800;
+}
+
+/* Custom animations (keeping general fade-in for other elements) */
+@keyframes fadeInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* The animate-fade-in-up class will now be applied by the useInViewAnimation hook */
+.animate-fade-in-up {
+  animation: fadeInFromBottom 0.8s ease-out forwards;
+}
+
+/* Ensure elements start invisible before animation */
+.opacity-0 {
+  opacity: 0;
+}
+
+.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animation-delay-400 {
+  animation-delay: 0.4s;
+}
+
+.animation-delay-600 {
+  animation-delay: 0.6s;
+}
+
+.animation-delay-800 {
+  animation-delay: 0.8s;
+}
+
+/* Custom scrollbar for chat window */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #333; /* Dark track */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #8a2be2; /* Neon purple thumb */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00bfff; /* Neon blue on hover */
+}
