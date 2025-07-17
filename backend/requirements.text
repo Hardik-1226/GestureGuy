@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+opencv-python
+cvzone
+pyautogui
+python-multipart
