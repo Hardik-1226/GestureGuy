@@ -5,7 +5,6 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 from io import BytesIO
-import pyautogui
 import time
 
 # Load TensorFlow model
