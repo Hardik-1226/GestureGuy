@@ -11,11 +11,14 @@ export default function Hero() {
   const [message, setMessage] = useState("")
   const [activated, setActivated] = useState(false)
 
+  // Update backend URL to use ngrok
+  const BACKEND_URL = "https://2fe57d6030a4.ngrok-free.app";
+
   const handleGetStarted = async () => {
     setLoading(true)
     setMessage("")
     try {
-      const res = await fetch("http://localhost:8000/get-started", {
+      const res = await fetch(`${BACKEND_URL}/get-started`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
@@ -36,7 +39,7 @@ export default function Hero() {
     setLoading(true)
     setMessage("")
     try {
-      const res = await fetch("http://localhost:8000/stop-gesture", {
+      const res = await fetch(`${BACKEND_URL}/stop-gesture`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
@@ -52,6 +55,8 @@ export default function Hero() {
     }
     setLoading(false)
   }
+
+  // (Dummy landmarks and sendLandmarks function removed)
 
   return (
     <section className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-4 py-12 dark:bg-black/50 light:bg-transparent pt-24">
@@ -104,6 +109,7 @@ export default function Hero() {
             {loading ? "Stopping..." : "Stop"}
           </Button>
         )}
+        {/* (Send Dummy Landmarks button removed) */}
         <Link href="/about-project" passHref>
           <Button
             variant="secondary"
