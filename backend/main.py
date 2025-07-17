@@ -1,125 +1,94 @@
-"use client"
+from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import tensorflow as tf
+import numpy as np
+from PIL import Image
+from io import BytesIO
+import pyautogui
+import time
 
-import { Button } from "@/components/ui/button"
-import { SparklesIcon, RocketIcon } from "lucide-react"
-import TypewriterEffect from "./TypewriterEffect"
-import Link from "next/link"
-import { useState } from "react"
+# Load TensorFlow model
+model = tf.keras.models.load_model("hand_model.h5")
+class_names = ["click", "scroll up", "scroll down", "volume up", "volume down", "zoom in", "zoom out", "next slide"]
 
-const BACKEND_URL = "https://your-deployment-url.com" // ✅ Use your deployed backend URL here
+# FastAPI Setup
+app = FastAPI()
 
-export default function Hero() {
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState("")
-  const [activated, setActivated] = useState(false)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, change this
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-  const handleGetStarted = async () => {
-    setLoading(true)
-    setMessage("")
-    try {
-      const res = await fetch(`${BACKEND_URL}/get-started`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      })
-      const data = await res.json()
-      if (data.status === "started" || data.status === "already_running") {
-        setActivated(true)
-        setMessage("Gesture Control Activated!")
-        startImageCaptureLoop()
-      } else {
-        setMessage("Failed to activate gesture control.")
-      }
-    } catch (e) {
-      setMessage("Could not connect to backend.")
-    }
-    setLoading(false)
-  }
+gesture_active = False
+last_action_time = 0
+gesture_hold_time = 0.8
 
-  const handleStop = async () => {
-    setLoading(true)
-    setMessage("")
-    try {
-      const res = await fetch(`${BACKEND_URL}/stop-gesture`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      })
-      const data = await res.json()
-      if (data.status === "stopped") {
-        setActivated(false)
-        setMessage("Gesture Control Stopped.")
-      } else {
-        setMessage("Failed to stop gesture control.")
-      }
-    } catch (e) {
-      setMessage("Could not connect to backend.")
-    }
-    setLoading(false)
-  }
+# === Routes ===
 
-  const startImageCaptureLoop = async () => {
-    const video = document.createElement("video")
-    video.style.display = "none"
-    document.body.appendChild(video)
+@app.post("/get-started")
+def get_started():
+    global gesture_active
+    if gesture_active:
+        return JSONResponse(content={"status": "already_running"})
+    gesture_active = True
+    return JSONResponse(content={"status": "started"})
 
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-    video.srcObject = stream
-    await video.play()
+@app.post("/stop-gesture")
+def stop_gesture():
+    global gesture_active
+    gesture_active = False
+    return JSONResponse(content={"status": "stopped"})
 
-    const canvas = document.createElement("canvas")
-    const ctx = canvas.getContext("2d")!
+@app.post("/predict")
+async def predict(file: UploadFile = File(...)):
+    global last_action_time, gesture_active
+    if not gesture_active:
+        return JSONResponse(content={"status": "inactive"})
 
-    const captureFrame = async () => {
-      if (!activated) return
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    current_time = time.time()
+    if current_time - last_action_time < gesture_hold_time:
+        return JSONResponse(content={"status": "cooldown"})
 
-      const blob = await new Promise<Blob>(resolve => canvas.toBlob(resolve!, "image/jpeg"))
-      const formData = new FormData()
-      formData.append("file", blob, "frame.jpg")
+    contents = await file.read()
+    image = Image.open(BytesIO(contents)).convert("RGB")
+    image = image.resize((224, 224))  # Resize for model
+    img_array = np.array(image) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
 
-      try {
-        const res = await fetch(`${BACKEND_URL}/predict`, {
-          method: "POST",
-          body: formData,
-        })
-        const data = await res.json()
-        if (data.action && data.action !== "none") {
-          console.log("Gesture:", data.action)
-        }
-      } catch (err) {
-        console.error("Failed to send image", err)
-      }
+    predictions = model.predict(img_array)
+    predicted_index = np.argmax(predictions[0])
+    predicted_class = class_names[predicted_index]
 
-      setTimeout(captureFrame, 600) // Loop every 600ms
-    }
+    # Map predicted gesture to action
+    action = "none"
+    if predicted_class == "click":
+        pyautogui.click()
+        action = "click"
+    elif predicted_class == "scroll up":
+        pyautogui.scroll(60)
+        action = "scroll up"
+    elif predicted_class == "scroll down":
+        pyautogui.scroll(-60)
+        action = "scroll down"
+    elif predicted_class == "volume up":
+        pyautogui.press("volumeup")
+        action = "volume up"
+    elif predicted_class == "volume down":
+        pyautogui.press("volumedown")
+        action = "volume down"
+    elif predicted_class == "zoom in":
+        pyautogui.hotkey("ctrl", "+")
+        action = "zoom in"
+    elif predicted_class == "zoom out":
+        pyautogui.hotkey("ctrl", "-")
+        action = "zoom out"
+    elif predicted_class == "next slide":
+        pyautogui.press("right")
+        action = "next slide"
 
-    captureFrame()
-  }
-
-  return (
-    <section className="min-h-screen pt-24 text-center">
-      <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-6">
-        <TypewriterEffect text="GestureGuy" speed={10} delay={0} />
-        <TypewriterEffect text="The Gesture-Controlled Software Interface" speed={2} delay={150} />
-      </h1>
-      <p className="text-lg md:text-xl text-gray-300 mb-10">
-        Discover the future of interaction with intuitive hand gestures.
-      </p>
-      <div className="flex justify-center gap-4">
-        <Link href="/explore-features">
-          <Button><SparklesIcon className="mr-2 h-5 w-5" />Explore Features</Button>
-        </Link>
-        <Button onClick={handleGetStarted} disabled={loading || activated}>
-          {loading ? "Activating..." : <><RocketIcon className="mr-2 h-5 w-5" />Get Started</>}
-        </Button>
-        {activated && (
-          <Button variant="destructive" onClick={handleStop} disabled={loading}>
-            🛑 Stop
-          </Button>
-        )}
-      </div>
-      {message && <p className="mt-4 text-green-400">{message}</p>}
-    </section>
-  )
-}
+    last_action_time = current_time
+    return JSONResponse(content={"status": "action", "action": action})
