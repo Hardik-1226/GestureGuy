@@ -3,5 +3,6 @@ uvicorn
 opencv-python
 cvzone
 pyautogui
-mediapipe
+git+https://github.com/google/mediapipe.git
+
 
