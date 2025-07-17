@@ -15,19 +15,19 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install base dependencies (without tensorflow)
+# Copy requirements and install dependencies
 COPY requirements.txt .
 
-# Upgrade pip and install TensorFlow separately for better Docker cache
+# Upgrade pip and install manually tensorflow first
 RUN pip install --upgrade pip \
     && pip install --no-cache-dir tensorflow \
     && pip install --no-cache-dir -r requirements.txt
 
-# Copy app code
+# Copy the app code
 COPY . .
 
-# Expose FastAPI port
+# Expose the port
 EXPOSE 8000
 
-# Start FastAPI app
+# Run the app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
