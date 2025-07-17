@@ -4,4 +4,5 @@ opencv-python
 cvzone
 pyautogui
 python-multipart
-mediapipe
+mediapipe==0.10.3
+
