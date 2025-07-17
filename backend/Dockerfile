@@ -1,5 +1,5 @@
 # Use official Python image
-FROM python:3.11-slim
+FROM python:3.11
 
 # Prevent Python from writing .pyc files and buffer issues
 ENV PYTHONDONTWRITEBYTECODE=1
