@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-mediapipe
-opencv-python
-cvzone
-pyautogui
+tensorflow
+pillow
+python-multipart
+numpy
