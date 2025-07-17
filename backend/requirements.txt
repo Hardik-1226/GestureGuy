@@ -1,8 +1,6 @@
-fastapi
-uvicorn
+fastapi==0.110.0
+uvicorn==0.27.1
 opencv-python
 cvzone
 pyautogui
-python-multipart
-mediapipe==0.10.3
-
+git+https://github.com/google/mediapipe.git
