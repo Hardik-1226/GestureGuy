@@ -11,8 +11,8 @@ export default function Hero() {
   const [message, setMessage] = useState("")
   const [activated, setActivated] = useState(false)
 
-  // Update backend URL to use ngrok
-  const BACKEND_URL = "const BACKEND_URL = "https:/gestureguy-production.up.railway.app";";
+  // Use local backend
+  const BACKEND_URL = "http://localhost:8000";
 
   const handleGetStarted = async () => {
     setLoading(true)
