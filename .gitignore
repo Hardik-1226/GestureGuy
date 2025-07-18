@@ -1,0 +1,14 @@
+# Node modules & Python
+frontend/node_modules/
+backend/__pycache__/
+*.pyc
+
+# OS and IDE junk
+.DS_Store
+.vscode/
+
+# Python env
+backend/venv/
+
+# ENV files
+*.env

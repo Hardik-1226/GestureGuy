@@ -1,8 +1,12 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { FaUser, FaRobot, FaPaperPlane, FaSmile, FaPowerOff } from 'react-icons/fa';
+
+const MotionDiv = dynamic(() => import('framer-motion').then(mod => mod.motion.div), { ssr: false, loading: () => null });
+const MotionButton = dynamic(() => import('framer-motion').then(mod => mod.motion.button), { ssr: false, loading: () => null });
+const AnimatePresence = dynamic(() => import('framer-motion').then(mod => mod.AnimatePresence), { ssr: false, loading: () => <></> });
 
 const conversationPairs = [
   // Greetings and general
@@ -85,7 +89,7 @@ export default function ChatWindow() {
     <>
       {!expanded && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center group">
-          <motion.button
+          <MotionButton
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             whileHover={{ scale: 1.1 }}
@@ -95,7 +99,7 @@ export default function ChatWindow() {
             aria-label="Open GestureAi Chat"
           >
             <FaRobot color="#6366f1" size={32} />
-          </motion.button>
+          </MotionButton>
           <span className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 mb-3 bg-gray-900/80 text-white text-xs font-semibold px-3 py-1 rounded shadow-lg whitespace-nowrap backdrop-blur-md" style={{ position: 'absolute', bottom: '4.5rem' }}>
             Any Doubt?
           </span>
@@ -103,7 +107,7 @@ export default function ChatWindow() {
       )}
       <AnimatePresence>
         {expanded && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
@@ -157,14 +161,14 @@ export default function ChatWindow() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
               />
-              <motion.button
+              <MotionButton
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="px-5 py-3 text-pink-500 font-bold hover:bg-pink-500 hover:text-white rounded-br-3xl transition-colors"
                 onClick={handleSend}
               >
                 <FaPaperPlane />
-              </motion.button>
+              </MotionButton>
             </div>
             {/* Glowing effect */}
             <style jsx>{`
@@ -172,7 +176,7 @@ export default function ChatWindow() {
                 box-shadow: 0 0 32px 4px #a5b4fc55, 0 0 8px 2px #f472b655;
               }
             `}</style>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </>

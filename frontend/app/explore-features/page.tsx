@@ -4,7 +4,6 @@ import { LaptopIcon, FingerprintIcon, CloudCogIcon, LightbulbIcon, PlugZapIcon, 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import StarBackground from "@/components/StarBackground"
-import FloatingChatButton from "@/components/FloatingChatButton"
 import { useInViewAnimation } from "@/hooks/useInViewAnimation"
 
 const detailedFeatures = [
@@ -96,7 +95,6 @@ export default function ExploreFeaturesPage() {
           </div>
         </div>
       </div>
-      <FloatingChatButton />
     </div>
   )
 }

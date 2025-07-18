@@ -4,9 +4,9 @@ import Features from "@/components/Features"
 import GestureElements from "@/components/GestureElements"
 import Demo from "@/components/Demo"
 import Contact from "@/components/Contact"
-import FloatingChatButton from "@/components/FloatingChatButton"
 import StarBackground from "@/components/StarBackground"
 import Navbar from "@/components/Navbar"
+import ChatWindow from "@/components/ChatWindow";
 
 export default function Home() {
   return (
@@ -19,11 +19,11 @@ export default function Home() {
       <Features />
       <Demo />
       <Contact />
+      <ChatWindow />
       <footer className="relative z-10 py-8 text-center text-gray-500 dark:text-gray-500 light:text-gray-700 text-sm bg-black/40 dark:bg-black/40 light:bg-white/60">
         <p>&copy; {new Date().getFullYear()} GestureGuy. All rights reserved.</p>
         <p className="mt-2">Powered by Next.js, React, Three.js, and Tailwind CSS</p> {/* Moved text here */}
       </footer>
-      <FloatingChatButton />
     </div>
   )
 }

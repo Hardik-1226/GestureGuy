@@ -13,7 +13,6 @@ import {
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import StarBackground from "@/components/StarBackground" // Re-import StarBackground
-import FloatingChatButton from "@/components/FloatingChatButton"
 import { useInViewAnimation } from "@/hooks/useInViewAnimation"
 
 export default function AboutProjectPage() {
@@ -210,7 +209,6 @@ export default function AboutProjectPage() {
           </div>
         </div>
       </div>
-      <FloatingChatButton /> {/* Add FloatingChatButton to about-project page as well */}
     </div>
   )
 }
