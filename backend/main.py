@@ -1,66 +1,146 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import numpy as np
-from PIL import Image
-import tensorflow as tf
-import io
+import threading
+import cv2
+from cvzone.HandTrackingModule import HandDetector
+import pyautogui
 import time
 
+# FastAPI Setup
 app = FastAPI()
 
-# CORS middleware to allow frontend access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # You can replace "*" with your frontend domain in prod
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Load your TensorFlow gesture model
-model = tf.keras.models.load_model("model.h5")
+# Gesture Thread Control
+gesture_thread = None
+gesture_running = threading.Event()
 
-# Map class indices to actions
-class_names = {
-    0: "click",
-    1: "scroll up",
-    2: "scroll down",
-    3: "volume up",
-    4: "zoom in"
-}
+# Distance Helper
+def dist(p1, p2):
+    return ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
 
-# To avoid repeating actions too fast
-last_action_time = 0
-cooldown_period = 1.0  # seconds
+# Gesture Control Function
+def run_gesture_control():
+    screen_width, screen_height = pyautogui.size()
+    cap = cv2.VideoCapture(0)
+    detector = HandDetector(detectionCon=0.8, maxHands=1)
 
-@app.get("/")
-async def root():
-    return {"message": "Gesture detection backend is working!"}
+    last_action_time = 0
+    gesture_hold_time = 0.8  # seconds
 
-@app.post("/predict")
-async def predict(file: UploadFile = File(...)):
-    global last_action_time
+    while gesture_running.is_set():
+        success, frame = cap.read()
+        if not success:
+            break
 
-    # Load image from the uploaded file
-    image_data = await file.read()
-    image = Image.open(io.BytesIO(image_data)).convert("RGB")
+        frame = cv2.flip(frame, 1)
+        hands, img = detector.findHands(frame)
 
-    # Preprocess image for the model
-    image = image.resize((224, 224))
-    image_array = np.array(image) / 255.0
-    image_array = np.expand_dims(image_array, axis=0)
+        current_time = time.time()
+        action_text = "None"
 
-    # Predict using the model
-    predictions = model.predict(image_array)
-    predicted_class = np.argmax(predictions)
+        if hands:
+            hand = hands[0]
+            lmList = hand["lmList"]
+            handType = hand["type"]
 
-    # Check cooldown to prevent spamming
-    current_time = time.time()
-    if current_time - last_action_time < cooldown_period:
-        return JSONResponse(content={"action": None, "message": "Cooldown active"})
+            # Landmark points
+            index_tip = lmList[8]
+            middle_tip = lmList[12]
+            thumb_tip = lmList[4]
+            pinky_tip = lmList[20]
 
-    last_action_time = current_time
-    action = class_names[predicted_class]
+            # Cursor movement (middle finger)
+            cursor_x = int(middle_tip[0] / frame.shape[1] * screen_width)
+            cursor_y = int(middle_tip[1] / frame.shape[0] * screen_height)
+            pyautogui.moveTo(cursor_x, cursor_y, duration=0.1)
 
-    return JSONResponse(content={"action": action, "message": "Action performed"})
+            # Click (Index tip near thumb)
+            if dist(index_tip, thumb_tip) < 30 and current_time - last_action_time > gesture_hold_time:
+                pyautogui.click()
+                action_text = "Click"
+                last_action_time = current_time
+
+            # Scroll Up
+            if thumb_tip[1] < index_tip[1] and thumb_tip[1] < pinky_tip[1] and current_time - last_action_time > gesture_hold_time:
+                pyautogui.scroll(60)
+                action_text = "Scroll Up"
+                last_action_time = current_time
+
+            # Scroll Down
+            elif thumb_tip[1] > index_tip[1] and thumb_tip[1] > pinky_tip[1] and current_time - last_action_time > gesture_hold_time:
+                pyautogui.scroll(-60)
+                action_text = "Scroll Down"
+                last_action_time = current_time
+
+            # Volume Up (V sign - index and middle far apart)
+            if dist(index_tip, middle_tip) > 50 and current_time - last_action_time > gesture_hold_time:
+                pyautogui.press("volumeup")
+                action_text = "Volume Up"
+                last_action_time = current_time
+
+            # Volume Down (fingers close together)
+            elif dist(index_tip, middle_tip) < 20 and current_time - last_action_time > gesture_hold_time:
+                pyautogui.press("volumedown")
+                action_text = "Volume Down"
+                last_action_time = current_time
+
+            # Zoom In (thumb + pinky close)
+            if dist(thumb_tip, pinky_tip) < 30 and current_time - last_action_time > gesture_hold_time:
+                pyautogui.hotkey("ctrl", "+")
+                action_text = "Zoom In"
+                last_action_time = current_time
+
+            # Zoom Out (thumb + middle close)
+            elif dist(thumb_tip, middle_tip) < 30 and current_time - last_action_time > gesture_hold_time:
+                pyautogui.hotkey("ctrl", "-")
+                action_text = "Zoom Out"
+                last_action_time = current_time
+
+            # Slide Navigation
+            if dist(thumb_tip, pinky_tip) > 150 and current_time - last_action_time > gesture_hold_time:
+                if handType == "Right":
+                    pyautogui.press("right")
+                    action_text = "Next Slide"
+                else:
+                    pyautogui.press("left")
+                    action_text = "Previous Slide"
+                last_action_time = current_time
+
+        # Display action on camera feed
+        cv2.putText(img, f"Action: {action_text}", (10, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.imshow("Gesture Control", img)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+    gesture_running.clear()
+
+# Start Endpoint
+@app.post("/get-started")
+def start_gesture():
+    global gesture_thread
+    if gesture_running.is_set():
+        return JSONResponse(content={"status": "already_running"})
+    gesture_running.set()
+    gesture_thread = threading.Thread(target=run_gesture_control, daemon=True)
+    gesture_thread.start()
+    return JSONResponse(content={"status": "started"})
+
+# Stop Endpoint
+@app.post("/stop-gesture")
+def stop_gesture():
+    if not gesture_running.is_set():
+        return JSONResponse(content={"status": "not_running"})
+    gesture_running.clear()
+    return JSONResponse(content={"status": "stopped"})
